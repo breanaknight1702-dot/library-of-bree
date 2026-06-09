@@ -298,6 +298,89 @@
       );
     }
 
+    // ── Sort helpers ──────────────────────────────────────────────────────────
+    const SORT_OPTS = [
+      { key: 'added-desc', label: 'Newest' },
+      { key: 'added-asc',  label: 'Oldest' },
+      { key: 'title',      label: 'Title'  },
+      { key: 'author',     label: 'Author' },
+    ];
+    function sortBooks(books, key) {
+      const s = [...books];
+      if (key === 'added-desc') return s.sort((a,b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+      if (key === 'added-asc')  return s.sort((a,b) => new Date(a.dateAdded) - new Date(b.dateAdded));
+      if (key === 'title')      return s.sort((a,b) => a.title.localeCompare(b.title));
+      if (key === 'author')     return s.sort((a,b) => a.author.localeCompare(b.author));
+      return s;
+    }
+
+    // ── ShelfRows: splits spines into rows, each with its own plank ───────────
+    function ShelfRows({ books, onBookClick }) {
+      const containerRef = useRef(null);
+      const [containerWidth, setContainerWidth] = useState(660);
+
+      useEffect(() => {
+        if (!containerRef.current) return;
+        const ro = new ResizeObserver(entries => {
+          setContainerWidth(entries[0].contentRect.width);
+        });
+        ro.observe(containerRef.current);
+        return () => ro.disconnect();
+      }, []);
+
+      // spine width: matches .spine-w CSS (30px desktop, 26px mobile via CSS but we
+      // read the actual rendered width from a ref on first spine; for chunking we
+      // use a JS estimate that matches the CSS breakpoint
+      const spineW   = containerWidth < 480 ? 26 : 30;
+      const gap      = 3;
+      const perRow   = Math.max(1, Math.floor((containerWidth + gap) / (spineW + gap)));
+      const rows     = [];
+      for (let i = 0; i < books.length; i += perRow) rows.push(books.slice(i, i + perRow));
+
+      const Plank = () => (
+        <div style={{ height: 11, background: '#221830', borderRadius: '0 0 4px 4px',
+          boxShadow: '0 5px 12px rgba(0,0,0,.45)' }}>
+          <div style={{ height: 2, background: '#3d2f52' }} />
+        </div>
+      );
+
+      return (
+        <div ref={containerRef}>
+          {rows.map((row, ri) => (
+            <div key={ri} style={{ marginBottom: ri < rows.length - 1 ? 18 : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+                {row.map(b => <Spine key={b.id} book={b} onClick={onBookClick} />)}
+              </div>
+              <Plank />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── SortBar ───────────────────────────────────────────────────────────────
+    function SortBar({ value, onChange, accent }) {
+      return (
+        <div style={{ display: 'flex', gap: 5, marginBottom: 14, flexWrap: 'wrap' }}>
+          {SORT_OPTS.map(({ key, label }) => {
+            const active = value === key;
+            return (
+              <button key={key} onClick={() => onChange(key)}
+                style={{
+                  background: active ? accent + '22' : 'transparent',
+                  border: `1px solid ${active ? accent : '#2e2040'}`,
+                  color: active ? accent : '#4d3a5e',
+                  borderRadius: 20, padding: '3px 11px',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: "'Nunito', sans-serif", transition: 'all .15s',
+                  lineHeight: 1.6,
+                }}>{label}</button>
+            );
+          })}
+        </div>
+      );
+    }
+
     // ── App ───────────────────────────────────────────────────────────────────
     function App() {
       const [books, setBooks]         = useState(() => loadBooks());
@@ -310,6 +393,8 @@
       const [detail, setDetail]       = useState(null);
       const [manShelf, setManShelf]   = useState('want');
       const [manual, setManual]       = useState({ title: '', author: '', pages: '' });
+      const [sortWant, setSortWant]   = useState('added-desc');
+      const [sortRead, setSortRead]   = useState('added-desc');
       const debounce = useRef(null);
 
       useEffect(() => { saveBooks(books); }, [books]);
@@ -353,16 +438,9 @@
 
       const closeAdd = () => { setShowAdd(false); setPending(null); };
 
-      const reading = books.filter(b => b.shelf === 'reading');
-      const want    = books.filter(b => b.shelf === 'want');
-      const read    = books.filter(b => b.shelf === 'read');
-
-      const Plank = () => (
-        <div style={{ height: 11, background: '#221830', borderRadius: '0 0 4px 4px',
-          boxShadow: '0 5px 12px rgba(0,0,0,.45)' }}>
-          <div style={{ height: 2, background: '#3d2f52' }} />
-        </div>
-      );
+      const reading     = books.filter(b => b.shelf === 'reading');
+      const want        = sortBooks(books.filter(b => b.shelf === 'want'), sortWant);
+      const read        = sortBooks(books.filter(b => b.shelf === 'read'), sortRead);
 
       return (
         <div style={{ minHeight: '100vh', background: '#0c0910', color: '#f0eaf8', fontFamily: "'Nunito', sans-serif" }}>
@@ -426,7 +504,7 @@
 
             {/* Want to Read */}
             <section style={{ marginBottom: 44 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 600, color: '#e8c07a' }}>
                   Want to Read
                 </span>
@@ -438,16 +516,14 @@
                     your tbr is empty — for now
                   </div>
                 : <>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, flexWrap: 'wrap' }}>
-                      {want.map(b => <Spine key={b.id} book={b} onClick={setDetail} />)}
-                    </div>
-                    <Plank />
+                    <SortBar value={sortWant} onChange={setSortWant} accent="#e8c07a" />
+                    <ShelfRows books={want} onBookClick={setDetail} />
                   </>}
             </section>
 
             {/* Read */}
             <section style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 600, color: '#9980d4' }}>
                   Read
                 </span>
@@ -459,10 +535,8 @@
                     no finished books yet
                   </div>
                 : <>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, flexWrap: 'wrap' }}>
-                      {read.map(b => <Spine key={b.id} book={b} onClick={setDetail} />)}
-                    </div>
-                    <Plank />
+                    <SortBar value={sortRead} onChange={setSortRead} accent="#9980d4" />
+                    <ShelfRows books={read} onBookClick={setDetail} />
                   </>}
             </section>
           </div>
