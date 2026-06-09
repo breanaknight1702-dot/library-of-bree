@@ -310,7 +310,7 @@
       if (key === 'added-desc') return s.sort((a,b) => new Date(b.dateAdded) - new Date(a.dateAdded));
       if (key === 'added-asc')  return s.sort((a,b) => new Date(a.dateAdded) - new Date(b.dateAdded));
       if (key === 'title')      return s.sort((a,b) => a.title.localeCompare(b.title));
-      if (key === 'author')     return s.sort((a,b) => a.author.localeCompare(b.author));
+      if (key === 'author')     return s.sort((a,b) => a.author.localeCompare(b.author) || (a.publishedYear || 9999) - (b.publishedYear || 9999));
       return s;
     }
 
