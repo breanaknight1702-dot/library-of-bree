@@ -359,40 +359,35 @@
       const rows   = [];
       for (let i = 0; i < books.length; i += perRow) rows.push(books.slice(i, i + perRow));
 
+      // Plank spans full width with dark side panels to suggest shelf walls.
       const Plank = () => (
-        <div style={{ height: 11, background: '#221830', borderRadius: '0 0 4px 4px',
-          boxShadow: '0 5px 12px rgba(0,0,0,.45)' }}>
+        <div style={{ position: 'relative', height: 11, background: '#221830',
+          borderRadius: '0 0 4px 4px', boxShadow: '0 5px 12px rgba(0,0,0,.45)' }}>
           <div style={{ height: 2, background: '#3d2f52' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 6,
+            background: 'rgba(0,0,0,.35)', borderRadius: '0 0 0 4px' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 6,
+            background: 'rgba(0,0,0,.35)', borderRadius: '0 0 4px 0' }} />
         </div>
       );
 
       return (
         <div ref={containerRef}>
-          {rows.map((row, ri) => {
-            // Each row gets its own complete rainbow arc 0→1.
-            // A single book sits at fraction 0 (leftmost hue).
-            // justify-content: space-between fills the plank edge-to-edge.
-            const total = row.length;
-            return (
-              <div key={ri} style={{ marginBottom: ri < rows.length - 1 ? 18 : 0 }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: total > 1 ? 'space-between' : 'flex-start',
-                  alignItems: 'flex-end',
-                }}>
-                  {row.map((b, i) => (
-                    <Spine
-                      key={b.id}
-                      book={b}
-                      onClick={onBookClick}
-                      rainbowFraction={total > 1 ? i / (total - 1) : 0}
-                    />
-                  ))}
-                </div>
-                <Plank />
+          {rows.map((row, ri) => (
+            <div key={ri} style={{ marginBottom: ri < rows.length - 1 ? 18 : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap }}>
+                {row.map((b, i) => (
+                  <Spine
+                    key={b.id}
+                    book={b}
+                    onClick={onBookClick}
+                    rainbowFraction={perRow > 1 ? i / (perRow - 1) : 0}
+                  />
+                ))}
               </div>
-            );
-          })}
+              <Plank />
+            </div>
+          ))}
         </div>
       );
     }
