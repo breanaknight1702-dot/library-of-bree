@@ -162,7 +162,8 @@
       Search: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
       Book: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4d3468" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
       BookSm: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4d3468" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-      Chevron: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4d3a5e" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+      ChevronRight: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4d3a5e" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+      ChevronDown: ({color='#4d3a5e', open=false}) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" style={{ transition: 'transform .2s ease', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}><polyline points="6 9 12 15 18 9"/></svg>,
       Trash: () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
       Back: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>,
       Bookmark: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="#c47d9b" stroke="#c47d9b" strokeWidth="2" strokeLinecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
@@ -449,6 +450,39 @@
       );
     }
 
+    // ── AuthorShelfGroup: per-author sub-shelves inside TBR / Read ───────────
+    function AuthorShelfGroup({ books, onBookClick, sortKey, accent }) {
+      // Group books by author, preserving the order dictated by sortKey
+      const groups = [];
+      const seen = {};
+      books.forEach(b => {
+        const key = b.author || 'Unknown';
+        if (!seen[key]) { seen[key] = []; groups.push({ author: key, items: seen[key] }); }
+        seen[key].push(b);
+      });
+
+      if (groups.length === 0) return null;
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {groups.map(({ author, items }) => (
+            <div key={author}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ height: 1, width: 10, background: accent + '55', flexShrink: 0 }} />
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14,
+                  fontStyle: 'italic', color: accent, whiteSpace: 'nowrap', opacity: 0.85 }}>
+                  {author}
+                </span>
+                <div style={{ flex: 1, height: 1, background: accent + '22' }} />
+                <span style={{ fontSize: 10, color: '#3d2f52', flexShrink: 0 }}>{items.length}</span>
+              </div>
+              <ShelfRows books={items} onBookClick={onBookClick} sortKey={sortKey} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     // ── App ───────────────────────────────────────────────────────────────────
     function App() {
       const [books, setBooks]         = useState(() => loadBooks());
@@ -463,6 +497,8 @@
       const [manual, setManual]       = useState({ title: '', author: '', pages: '' });
       const [sortWant, setSortWant]   = useState('author');
       const [sortRead, setSortRead]   = useState('author');
+      const [tbrOpen, setTbrOpen]     = useState(true);
+      const [readOpen, setReadOpen]   = useState(true);
       const debounce = useRef(null);
 
       useEffect(() => { saveBooks(books); }, [books]);
@@ -572,40 +608,54 @@
 
             {/* Want to Read */}
             <section style={{ marginBottom: 44 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: tbrOpen ? 10 : 0 }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 600, color: '#e8c07a' }}>
                   Want to Read
                 </span>
-                <span style={{ fontSize: 11, color: '#3d2f52', marginLeft: 'auto' }}>{want.length}</span>
+                <span style={{ fontSize: 11, color: '#3d2f52' }}>{want.length}</span>
+                <button onClick={() => setTbrOpen(o => !o)}
+                  style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', marginLeft: 4 }}>
+                  <Icon.ChevronDown color="#4d3a5e" open={tbrOpen} />
+                </button>
               </div>
-              {want.length === 0
-                ? <div style={{ textAlign: 'center', padding: '26px 0', color: '#3d2f52',
-                    fontSize: 14, fontStyle: 'italic', fontFamily: "'Cormorant Garamond', serif" }}>
-                    your tbr is empty — for now
-                  </div>
-                : <>
-                    <SortBar value={sortWant} onChange={setSortWant} accent="#e8c07a" />
-                    <ShelfRows books={want} onBookClick={setDetail} sortKey={sortWant} />
-                  </>}
+              {tbrOpen && (
+                want.length === 0
+                  ? <div style={{ textAlign: 'center', padding: '26px 0', color: '#3d2f52',
+                      fontSize: 14, fontStyle: 'italic', fontFamily: "'Cormorant Garamond', serif" }}>
+                      your tbr is empty — for now
+                    </div>
+                  : <>
+                      <SortBar value={sortWant} onChange={setSortWant} accent="#e8c07a" />
+                      <AuthorShelfGroup books={want} onBookClick={setDetail} sortKey={sortWant} accent="#e8c07a" />
+                    </>
+              )}
             </section>
 
             {/* Read */}
             <section style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: readOpen ? 10 : 0 }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 600, color: '#9980d4' }}>
                   Read
                 </span>
-                <span style={{ fontSize: 11, color: '#3d2f52', marginLeft: 'auto' }}>{read.length}</span>
+                <span style={{ fontSize: 11, color: '#3d2f52' }}>{read.length}</span>
+                <button onClick={() => setReadOpen(o => !o)}
+                  style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', marginLeft: 4 }}>
+                  <Icon.ChevronDown color="#4d3a5e" open={readOpen} />
+                </button>
               </div>
-              {read.length === 0
-                ? <div style={{ textAlign: 'center', padding: '26px 0', color: '#3d2f52',
-                    fontSize: 14, fontStyle: 'italic', fontFamily: "'Cormorant Garamond', serif" }}>
-                    no finished books yet
-                  </div>
-                : <>
-                    <SortBar value={sortRead} onChange={setSortRead} accent="#9980d4" />
-                    <ShelfRows books={read} onBookClick={setDetail} sortKey={sortRead} />
-                  </>}
+              {readOpen && (
+                read.length === 0
+                  ? <div style={{ textAlign: 'center', padding: '26px 0', color: '#3d2f52',
+                      fontSize: 14, fontStyle: 'italic', fontFamily: "'Cormorant Garamond', serif" }}>
+                      no finished books yet
+                    </div>
+                  : <>
+                      <SortBar value={sortRead} onChange={setSortRead} accent="#9980d4" />
+                      <AuthorShelfGroup books={read} onBookClick={setDetail} sortKey={sortRead} accent="#9980d4" />
+                    </>
+              )}
             </section>
           </div>
 
@@ -675,7 +725,7 @@
                           transition: 'all .15s', textAlign: 'left' }}>
                         <span style={{ width: 9, height: 9, borderRadius: '50%', background: accent, flexShrink: 0 }} />
                         {label}
-                        <span style={{ marginLeft: 'auto' }}><Icon.Chevron /></span>
+                        <span style={{ marginLeft: 'auto' }}><Icon.ChevronRight /></span>
                       </button>
                     ))}
                   </div>
