@@ -340,7 +340,7 @@
     }
 
     // ── ShelfRows: splits spines into rows, each with its own plank ───────────
-    function ShelfRows({ books, onBookClick }) {
+    function ShelfRows({ books, onBookClick, sortKey }) {
       const containerRef = useRef(null);
       const [mobile, setMobile] = useState(false);
 
@@ -353,13 +353,32 @@
         return () => ro.disconnect();
       }, []);
 
-      // Static values chosen so spines fill the shelf exactly with no remainder:
-      // Desktop: 30px spine + 3px gap × 20 = 660px (700px max-width − 20px padding each side)
-      // Mobile:  26px spine + 2px gap × 13 = 364px (390px viewport − 14px padding each side = 362px, fits cleanly)
       const perRow = mobile ? 13 : 20;
       const gap    = mobile ? 2  : 3;
-      const rows   = [];
+
+      // Pre-compute rainbow fractions. In author view each author gets its own
+      // arc (0→1 within their group); all other views use position across the row.
+      const fractions = (() => {
+        if (sortKey === 'author') {
+          const result = new Array(books.length);
+          let i = 0;
+          while (i < books.length) {
+            let j = i;
+            while (j < books.length && books[j].author === books[i].author) j++;
+            const groupSize = j - i;
+            for (let k = 0; k < groupSize; k++) {
+              result[i + k] = groupSize > 1 ? k / (groupSize - 1) : 0;
+            }
+            i = j;
+          }
+          return result;
+        }
+        return null; // use row-position fractions below
+      })();
+
+      const rows = [];
       for (let i = 0; i < books.length; i += perRow) rows.push(books.slice(i, i + perRow));
+
 
       const Plank = () => (
         <div style={{ position: 'relative', height: 11, background: '#221830',
@@ -377,6 +396,7 @@
           {rows.map((row, ri) => {
             const isLastRow = ri === rows.length - 1;
             const isFull = row.length === perRow;
+            const globalOffset = ri * perRow;
             return (
               <div key={ri} style={{ marginBottom: !isLastRow ? 18 : 0 }}>
                 <div style={{
@@ -384,14 +404,19 @@
                   justifyContent: (!isLastRow || isFull) ? 'space-between' : 'flex-start',
                   gap: (!isLastRow || isFull) ? 0 : gap,
                 }}>
-                  {row.map((b, i) => (
-                    <Spine
-                      key={b.id}
-                      book={b}
-                      onClick={onBookClick}
-                      rainbowFraction={perRow > 1 ? i / (perRow - 1) : 0}
-                    />
-                  ))}
+                  {row.map((b, i) => {
+                    const fraction = fractions
+                      ? fractions[globalOffset + i]
+                      : (perRow > 1 ? i / (perRow - 1) : 0);
+                    return (
+                      <Spine
+                        key={b.id}
+                        book={b}
+                        onClick={onBookClick}
+                        rainbowFraction={fraction}
+                      />
+                    );
+                  })}
                 </div>
                 <Plank />
               </div>
@@ -560,7 +585,7 @@
                   </div>
                 : <>
                     <SortBar value={sortWant} onChange={setSortWant} accent="#e8c07a" />
-                    <ShelfRows books={want} onBookClick={setDetail} />
+                    <ShelfRows books={want} onBookClick={setDetail} sortKey={sortWant} />
                   </>}
             </section>
 
@@ -579,7 +604,7 @@
                   </div>
                 : <>
                     <SortBar value={sortRead} onChange={setSortRead} accent="#9980d4" />
-                    <ShelfRows books={read} onBookClick={setDetail} />
+                    <ShelfRows books={read} onBookClick={setDetail} sortKey={sortRead} />
                   </>}
             </section>
           </div>
