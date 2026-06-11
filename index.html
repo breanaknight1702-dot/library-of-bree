@@ -342,24 +342,25 @@
     // ── ShelfRows: splits spines into rows, each with its own plank ───────────
     function ShelfRows({ books, onBookClick }) {
       const containerRef = useRef(null);
-      const [containerWidth, setContainerWidth] = useState(660);
+      const [mobile, setMobile] = useState(false);
 
       useEffect(() => {
         if (!containerRef.current) return;
         const ro = new ResizeObserver(entries => {
-          setContainerWidth(entries[0].contentRect.width);
+          setMobile(entries[0].contentRect.width < 480);
         });
         ro.observe(containerRef.current);
         return () => ro.disconnect();
       }, []);
 
-      const spineW = containerWidth < 480 ? 26 : 30;
-      const gap    = 3;
-      const perRow = Math.max(1, Math.floor((containerWidth + gap) / (spineW + gap)));
+      // Static values chosen so spines fill the shelf exactly with no remainder:
+      // Desktop: 30px spine + 3px gap × 20 = 660px (700px max-width − 20px padding each side)
+      // Mobile:  26px spine + 2px gap × 13 = 364px (390px viewport − 14px padding each side = 362px, fits cleanly)
+      const perRow = mobile ? 13 : 20;
+      const gap    = mobile ? 2  : 3;
       const rows   = [];
       for (let i = 0; i < books.length; i += perRow) rows.push(books.slice(i, i + perRow));
 
-      // Plank spans full width with dark side panels to suggest shelf walls.
       const Plank = () => (
         <div style={{ position: 'relative', height: 11, background: '#221830',
           borderRadius: '0 0 4px 4px', boxShadow: '0 5px 12px rgba(0,0,0,.45)' }}>
