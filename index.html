@@ -451,34 +451,57 @@
     }
 
     // ── AuthorShelfGroup: per-author sub-shelves inside TBR / Read ───────────
-    function AuthorShelfGroup({ books, onBookClick, sortKey, accent }) {
-      // Group books by author, preserving the order dictated by sortKey
-      const groups = [];
+    // Authors with >= threshold books get their own named shelf.
+    // Authors with fewer books are pooled onto a single "& others" shelf.
+    function AuthorShelfGroup({ books, onBookClick, sortKey, accent, threshold = 3 }) {
       const seen = {};
       books.forEach(b => {
         const key = b.author || 'Unknown';
-        if (!seen[key]) { seen[key] = []; groups.push({ author: key, items: seen[key] }); }
+        if (!seen[key]) seen[key] = [];
         seen[key].push(b);
       });
 
-      if (groups.length === 0) return null;
+      const dedicated = [];
+      const misc = [];
+      // Preserve the order authors first appear in the sorted book list
+      const authorOrder = [];
+      books.forEach(b => {
+        const key = b.author || 'Unknown';
+        if (!authorOrder.includes(key)) authorOrder.push(key);
+      });
+      authorOrder.forEach(key => {
+        if (seen[key].length >= threshold) dedicated.push({ author: key, items: seen[key] });
+        else misc.push(...seen[key]);
+      });
+
+      if (dedicated.length === 0 && misc.length === 0) return null;
+
+      const AuthorLabel = ({ label, count }) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{ height: 1, width: 10, background: accent + '55', flexShrink: 0 }} />
+          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14,
+            fontStyle: 'italic', color: accent, whiteSpace: 'nowrap', opacity: 0.85 }}>
+            {label}
+          </span>
+          <div style={{ flex: 1, height: 1, background: accent + '22' }} />
+          <span style={{ fontSize: 10, color: '#3d2f52', flexShrink: 0 }}>{count}</span>
+        </div>
+      );
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-          {groups.map(({ author, items }) => (
+          {dedicated.map(({ author, items }) => (
             <div key={author}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ height: 1, width: 10, background: accent + '55', flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14,
-                  fontStyle: 'italic', color: accent, whiteSpace: 'nowrap', opacity: 0.85 }}>
-                  {author}
-                </span>
-                <div style={{ flex: 1, height: 1, background: accent + '22' }} />
-                <span style={{ fontSize: 10, color: '#3d2f52', flexShrink: 0 }}>{items.length}</span>
-              </div>
+              <AuthorLabel label={author} count={items.length} />
               <ShelfRows books={items} onBookClick={onBookClick} sortKey={sortKey} />
             </div>
           ))}
+          {misc.length > 0 && (
+            <div>
+              <AuthorLabel label="Miscellaneous" count={misc.length} />
+              <ShelfRows books={misc} onBookClick={onBookClick} sortKey={sortKey} />
+            </div>
+          )}
         </div>
       );
     }
