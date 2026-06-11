@@ -325,10 +325,10 @@
 
     // ── Sort helpers ──────────────────────────────────────────────────────────
     const SORT_OPTS = [
+      { key: 'author',     label: 'Author' },
+      { key: 'title',      label: 'Title'  },
       { key: 'added-desc', label: 'Newest' },
       { key: 'added-asc',  label: 'Oldest' },
-      { key: 'title',      label: 'Title'  },
-      { key: 'author',     label: 'Author' },
     ];
     function sortBooks(books, key) {
       const s = [...books];
@@ -461,8 +461,8 @@
       const [detail, setDetail]       = useState(null);
       const [manShelf, setManShelf]   = useState('want');
       const [manual, setManual]       = useState({ title: '', author: '', pages: '' });
-      const [sortWant, setSortWant]   = useState('added-desc');
-      const [sortRead, setSortRead]   = useState('added-desc');
+      const [sortWant, setSortWant]   = useState('author');
+      const [sortRead, setSortRead]   = useState('author');
       const debounce = useRef(null);
 
       useEffect(() => { saveBooks(books); }, [books]);
