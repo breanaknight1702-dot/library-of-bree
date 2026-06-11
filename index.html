@@ -353,32 +353,32 @@
         return () => ro.disconnect();
       }, []);
 
+      // Static values chosen so spines fill the shelf exactly:
+      // Desktop: 30px spine + 3px gap × 20 = 660px (700px max-width − 20px padding each side)
+      // Mobile:  26px spine + 2px gap × 13 = 364px (fits within 362px content at 14px padding)
       const perRow = mobile ? 13 : 20;
       const gap    = mobile ? 2  : 3;
 
-      // Pre-compute rainbow fractions. In author view each author gets its own
-      // arc (0→1 within their group); all other views use position across the row.
+      // In author view each author gets its own rainbow arc (0→1 within their
+      // group). All other views spread the arc across each row by position.
       const fractions = (() => {
-        if (sortKey === 'author') {
-          const result = new Array(books.length);
-          let i = 0;
-          while (i < books.length) {
-            let j = i;
-            while (j < books.length && books[j].author === books[i].author) j++;
-            const groupSize = j - i;
-            for (let k = 0; k < groupSize; k++) {
-              result[i + k] = groupSize > 1 ? k / (groupSize - 1) : 0;
-            }
-            i = j;
+        if (sortKey !== 'author') return null;
+        const result = new Array(books.length);
+        let i = 0;
+        while (i < books.length) {
+          let j = i;
+          while (j < books.length && books[j].author === books[i].author) j++;
+          const groupSize = j - i;
+          for (let k = 0; k < groupSize; k++) {
+            result[i + k] = groupSize > 1 ? k / (groupSize - 1) : 0;
           }
-          return result;
+          i = j;
         }
-        return null; // use row-position fractions below
+        return result;
       })();
 
       const rows = [];
       for (let i = 0; i < books.length; i += perRow) rows.push(books.slice(i, i + perRow));
-
 
       const Plank = () => (
         <div style={{ position: 'relative', height: 11, background: '#221830',
