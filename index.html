@@ -453,7 +453,7 @@
     // ── AuthorShelfGroup: per-author sub-shelves inside TBR / Read ───────────
     // Authors with >= threshold books get their own named shelf.
     // Authors with fewer books are pooled onto a single "& others" shelf.
-    function AuthorShelfGroup({ books, onBookClick, sortKey, accent, threshold = 3 }) {
+    function AuthorShelfGroup({ books, onBookClick, sortKey, accent, threshold = 4 }) {
       const seen = {};
       books.forEach(b => {
         const key = b.author || 'Unknown';
