@@ -341,9 +341,7 @@
     }
 
     // ── ShelfRows: splits spines into rows, each with its own plank ───────────
-    // authorBreaks: optional Set of book indices where a new author begins,
-    // used by the misc shelf to insert a visible gap between author groups.
-    function ShelfRows({ books, onBookClick, sortKey, authorBreaks }) {
+    function ShelfRows({ books, onBookClick, sortKey }) {
       const containerRef = useRef(null);
       const [mobile, setMobile] = useState(false);
 
@@ -408,21 +406,16 @@
                   gap: (!isLastRow || isFull) ? 0 : gap,
                 }}>
                   {row.map((b, i) => {
-                    const globalIdx = globalOffset + i;
                     const fraction = fractions
-                      ? fractions[globalIdx]
+                      ? fractions[globalOffset + i]
                       : (perRow > 1 ? i / (perRow - 1) : 0);
                     return (
-                      <React.Fragment key={b.id}>
-                        {authorBreaks?.has(globalIdx) && i > 0 && (
-                          <div style={{ width: mobile ? 10 : 14, flexShrink: 0 }} />
-                        )}
-                        <Spine
-                          book={b}
-                          onClick={onBookClick}
-                          rainbowFraction={fraction}
-                        />
-                      </React.Fragment>
+                      <Spine
+                        key={b.id}
+                        book={b}
+                        onClick={onBookClick}
+                        rainbowFraction={fraction}
+                      />
                     );
                   })}
                 </div>
@@ -503,19 +496,12 @@
               <ShelfRows books={items} onBookClick={onBookClick} sortKey={sortKey} />
             </div>
           ))}
-          {misc.length > 0 && (() => {
-            // Build a Set of indices where a new author starts within the misc array
-            const miscBreaks = new Set();
-            for (let i = 1; i < misc.length; i++) {
-              if (misc[i].author !== misc[i - 1].author) miscBreaks.add(i);
-            }
-            return (
-              <div>
-                <AuthorLabel label="Miscellaneous" count={misc.length} />
-                <ShelfRows books={misc} onBookClick={onBookClick} sortKey={sortKey} authorBreaks={miscBreaks} />
-              </div>
-            );
-          })()}
+          {misc.length > 0 && (
+            <div>
+              <AuthorLabel label="Miscellaneous" count={misc.length} />
+              <ShelfRows books={misc} onBookClick={onBookClick} sortKey={sortKey} />
+            </div>
+          )}
         </div>
       );
     }
