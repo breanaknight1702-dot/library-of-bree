@@ -374,21 +374,29 @@
 
       return (
         <div ref={containerRef}>
-          {rows.map((row, ri) => (
-            <div key={ri} style={{ marginBottom: ri < rows.length - 1 ? 18 : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap }}>
-                {row.map((b, i) => (
-                  <Spine
-                    key={b.id}
-                    book={b}
-                    onClick={onBookClick}
-                    rainbowFraction={perRow > 1 ? i / (perRow - 1) : 0}
-                  />
-                ))}
+          {rows.map((row, ri) => {
+            const isLastRow = ri === rows.length - 1;
+            const isFull = row.length === perRow;
+            return (
+              <div key={ri} style={{ marginBottom: !isLastRow ? 18 : 0 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'flex-end',
+                  justifyContent: (!isLastRow || isFull) ? 'space-between' : 'flex-start',
+                  gap: (!isLastRow || isFull) ? 0 : gap,
+                }}>
+                  {row.map((b, i) => (
+                    <Spine
+                      key={b.id}
+                      book={b}
+                      onClick={onBookClick}
+                      rainbowFraction={perRow > 1 ? i / (perRow - 1) : 0}
+                    />
+                  ))}
+                </div>
+                <Plank />
               </div>
-              <Plank />
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
